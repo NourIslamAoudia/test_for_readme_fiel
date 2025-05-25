@@ -1,268 +1,412 @@
-# Système de Communication Sécurisée
+# Secure File Transfer with MITM Vulnerability Demonstration
 
-Un système de communication sécurisée implémenté en Python basé sur le modèle **Pretty Good Privacy (PGP)**, permettant l'échange de messages chiffrés et signés numériquement entre un client et un serveur.
+[![Python](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Security](https://img.shields.io/badge/Purpose-Educational-orange.svg)]()
 
-## Objectif du Projet
+## 📋 Table of Contents
 
-Ce projet implémente un système de communication sécurisée qui démontre les principes fondamentaux de la cryptographie moderne :
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Security Features](#security-features)
+- [Vulnerability Demonstration](#vulnerability-demonstration)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Protocol Flow](#protocol-flow)
+- [Attack Analysis](#attack-analysis)
+- [Results](#results)
+- [Security Recommendations](#security-recommendations)
+- [Contributing](#contributing)
 
-- **Confidentialité** : Chiffrement des messages avec RSA
-- **Authenticité** : Signature numérique pour vérifier l'expéditeur
-- **Intégrité** : Détection de toute modification des données
-- **Non-répudiation** : Preuve de l'origine du message
+## 🎯 Overview
 
----
+This project demonstrates a **hybrid cryptographic file transfer system** with an intentional vulnerability to **Man-in-the-Middle (MITM) attacks** targeting ElGamal digital signatures. The system serves as an educational tool to understand:
 
-## ✨ Fonctionnalités
+- Hybrid encryption implementations
+- Digital signature vulnerabilities
+- MITM attack vectors
+- Cryptographic protocol security analysis
 
-### 🖥️ Serveur PGP (`serveur.py`)
+### 🏗️ System Components
 
-- ✅ Génération automatique de clés RSA (2048 bits)
-- ✅ Écoute multi-clients sur socket TCP
-- ✅ Déchiffrement des messages entrants
-- ✅ Vérification automatique des signatures numériques
-- ✅ Affichage sécurisé des messages authentifiés
-- ✅ Gestion des erreurs et logs détaillés
+| Component | Purpose | Technology |
+|-----------|---------|------------|
+| **Sender** | File encryption and transmission | AES-256 + RSA-2048 + ElGamal |
+| **Receiver** | File decryption and verification | RSA-2048 + ElGamal verification |
+| **MITM Proxy** | Attack demonstration | Signature corruption |
 
-### 📱 Client PGP (`client.py`)
+## 🏛️ Architecture
 
-- ✅ Génération de clés RSA uniques par session
-- ✅ Signature numérique des messages (SHA-256 + RSA-PSS)
-- ✅ Chiffrement avec la clé publique du serveur
-- ✅ Interface utilisateur intuitive
-- ✅ Mode test automatisé intégré
-- ✅ Validation des données avant envoi
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   SENDER    │────▶│  MITM PROXY  │────▶│  RECEIVER   │
+│             │     │              │     │             │
+│ • Encrypt   │     │ • Intercept  │     │ • Decrypt   │
+│ • Sign      │     │ • Corrupt    │     │ • Verify    │
+│ • Send      │     │ • Forward    │     │ • Accept    │
+└─────────────┘     └──────────────┘     └─────────────┘
+```
 
----
+### 📁 Project Structure
 
-## 🛠️ Prérequis et Installation
+```
+secure_file_transfer/
+├── 📄 README.md
+├── 🐍 sender.py              # File sender application
+├── 🐍 receiver.py            # File receiver application  
+├── 🐍 mitm_proxy.py          # MITM attack proxy
+├── 📁 keys_sender/           # Sender's cryptographic keys
+├── 📁 keys_receiver/         # Receiver's cryptographic keys
+├── 📁 received_files/        # Decrypted received files
+└── 📄 requirements.txt       # Python dependencies
+```
 
-### Prérequis Système
+## 🔐 Security Features
 
-- **Python 3.7+** (testé avec Python 3.8-3.11)
-- **Système d'exploitation** : Windows, macOS, Linux
+### Encryption Layer
+- **AES-256-CBC**: Symmetric encryption for file contents
+- **RSA-2048**: Asymmetric encryption for AES key exchange
+- **PKCS1-OAEP padding**: Enhanced RSA security
 
-### Installation des Dépendances
+### Authentication Layer
+- **ElGamal Digital Signatures**: Message authenticity
+- **SHA-256 Hashing**: Data integrity verification
+- **Public Key Exchange**: Identity verification
+
+### Security Flow Diagram
+
+```mermaid
+graph TD
+    A[File Input] --> B[Generate AES Key]
+    B --> C[Encrypt File with AES]
+    C --> D[Hash Encrypted Data]
+    D --> E[Sign Hash with ElGamal]
+    E --> F[Encrypt AES Key with RSA]
+    F --> G[Create Secure Package]
+    G --> H[Transmit]
+    
+    H --> I[Receive Package]
+    I --> J[Decrypt AES Key with RSA]
+    J --> K[Verify ElGamal Signature]
+    K --> L{Signature Valid?}
+    L -->|Yes| M[Decrypt File with AES]
+    L -->|No| N[Reject File]
+    M --> O[Save File]
+```
+
+## 🎯 Vulnerability Demonstration
+
+### Attack Vector: ElGamal Signature Corruption
+
+The MITM proxy demonstrates a targeted attack on the ElGamal signature verification process:
+
+```
+Normal Flow:
+Sender → [Encrypted File + Valid Signature] → Receiver ✅
+
+MITM Attack:
+Sender → [Encrypted File + Valid Signature] → MITM → [Encrypted File + Corrupted Signature] → Receiver ❌
+```
+
+### Attack Mechanism
+
+1. **Interception**: Proxy captures the encrypted package
+2. **Signature Identification**: Locates ElGamal signature bytes
+3. **Targeted Corruption**: Modifies specific signature bytes
+4. **Forwarding**: Sends corrupted package to receiver
+5. **Detection**: Receiver detects invalid signature and rejects
+
+## 🚀 Installation
+
+### Prerequisites
 
 ```bash
-# Installation de la bibliothèque cryptographique
+# Python 3.6 or higher
+python3 --version
+
+# Virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+```
+
+### Dependencies
+
+```bash
+# Install required packages
 pip install cryptography
+
+# Or use requirements file
+pip install -r requirements.txt
 ```
 
----
-
-## 🚀 Utilisation
-
-### Démarrage du Serveur
+### Initial Setup
 
 ```bash
-# Terminal 1
-python serveur.py
+# Clone or download the project
+git clone <repository-url>
+cd secure_file_transfer
+
+# Create necessary directories
+mkdir -p keys_sender keys_receiver received_files
+
+# Make scripts executable (Linux/Mac)
+chmod +x *.py
 ```
 
-**Sortie attendue :**
-```
-🔐 Serveur PGP initialisé
-📋 Clés RSA générées (2048 bits)
-🌐 Écoute sur localhost:8888
-⏳ En attente de connexions...
-```
+## 💻 Usage
 
-### Démarrage du Client
+### Step 1: Start the Receiver
 
 ```bash
-# Terminal 2
-python client.py
+python3 receiver.py --port 9999 --key-dir keys_receiver
 ```
 
-**Interface client :**
+**Expected Output:**
 ```
-📱 Client PGP 🔐
-Client PGP initialisé pour localhost:8888
-📋 Clés RSA du client générées avec succès
-
-💬 Que souhaitez-vous faire ?
-1. Envoyer un message sécurisé
-2. Quitter
-
-👉 Votre choix (1-2): 1
-✍️ Entrez votre message: Bonjour, message secret!
+🔑 Generating RSA keys...
+🔑 Keys saved to keys_receiver/
+🌐 Waiting for a connection on port 9999...
 ```
 
-### Mode Test Automatisé
+### Step 2: Start the MITM Proxy
 
-Pour tester rapidement le système, décommentez la ligne dans `client.py` :
-
-```python
-if __name__ == "__main__":
-    test_rapide()  # Décommentez cette ligne
-    # main()       # Commentez celle-ci
+```bash
+python3 mitm_proxy.py
 ```
 
----
+**Expected Output:**
+```
+============================================================
+[MITM] Proxy MITM actif – Mode : corruption de signature ElGamal
+[MITM] Écoute sur : 0.0.0.0:9998
+[MITM] Redirige vers : 192.168.159.129:9999
+============================================================
+```
 
-## 🔒 Architecture de Sécurité
+### Step 3: Send a File
 
-### Algorithmes Utilisés
+```bash
+# Create a test file
+echo "This is a test file for secure transfer." > test.txt
 
-| Composant | Algorithme | Détails |
-|-----------|------------|---------|
-| **Chiffrement asymétrique** | RSA-2048 | Clés de 2048 bits, exposant 65537 |
-| **Padding de chiffrement** | OAEP | Optimal Asymmetric Encryption Padding |
-| **Fonction de hachage** | SHA-256 | Pour l'intégrité et la signature |
-| **Signature numérique** | RSA-PSS | Probabilistic Signature Scheme |
-| **Transport** | TCP Socket | Communication réseau sécurisée |
+# Send the file
+python3 sender.py test.txt --host 192.168.159.128 --port 9998 --key-dir keys_sender
+```
 
-### Processus de Communication Sécurisée
+### Command Line Options
+
+| Script | Option | Description | Default |
+|--------|--------|-------------|---------|
+| `sender.py` | `filename` | File to send | Required |
+| | `--host` | Target host | `localhost` |
+| | `--port` | Target port | `9999` |
+| | `--key-dir` | Keys directory | `keys_sender` |
+| `receiver.py` | `--port` | Listen port | `9999` |
+| | `--key-dir` | Keys directory | `keys_receiver` |
+| `mitm_proxy.py` | No options | Uses hardcoded values | - |
+
+## 🔄 Protocol Flow
+
+### 1. Key Generation Phase
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant S as Serveur
-
-    Note over C,S: Échange de clés
-    C->>S: Connexion TCP
-    S->>C: Clé publique serveur
-
-    Note over C,S: Préparation du message
-    C->>C: Génération signature (clé privée client)
-    C->>C: Chiffrement message (clé publique serveur)
-
-    Note over C,S: Transmission sécurisée
-    C->>S: Paquet {message_chiffré, signature, clé_publique_client}
-
-    Note over C,S: Vérification et déchiffrement
-    S->>S: Déchiffrement (clé privée serveur)
-    S->>S: Vérification signature (clé publique client)
-    S->>S: Affichage message authentifié
+    participant S as Sender
+    participant R as Receiver
+    
+    Note over S: Generate RSA + ElGamal Keys
+    Note over R: Generate RSA Keys
+    
+    S->>S: Save keys to keys_sender/
+    R->>R: Save keys to keys_receiver/
 ```
 
----
+### 2. Connection Establishment
 
-## 📁 Structure du Projet
-
+```mermaid
+sequenceDiagram
+    participant S as Sender
+    participant M as MITM Proxy
+    participant R as Receiver
+    
+    S->>M: Connect (thinks it's R)
+    M->>R: Forward connection
+    R->>M: Accept connection
+    M->>S: Forward acceptance
 ```
-systeme-pgp/
-├── serveur.py          # Serveur PGP principal
-├── client.py           # Client PGP avec interface utilisateur
-├── README.md           # Documentation (ce fichier)
-├── requirements.txt    # Dépendances Python (optionnel)
-└── examples/           # Exemples et tests (optionnel)
-    ├── test_simple.py
-    └── demo_messages.txt
+
+### 3. Key Exchange
+
+```mermaid
+sequenceDiagram
+    participant S as Sender
+    participant M as MITM Proxy  
+    participant R as Receiver
+    
+    S->>M: Public Keys (RSA + ElGamal)
+    M->>R: Forward Public Keys
+    R->>M: Public Key (RSA)
+    M->>S: Forward Public Key
 ```
 
----
+### 4. File Transfer with Attack
 
-## 🔧 Configuration
+```mermaid
+sequenceDiagram
+    participant S as Sender
+    participant M as MITM Proxy
+    participant R as Receiver
+    
+    S->>S: Encrypt file + Create signature
+    S->>M: Send encrypted package
+    M->>M: Corrupt ElGamal signature
+    M->>R: Forward corrupted package
+    R->>R: Verify signature (FAIL)
+    R->>M: Connection reset
+    M->>S: Forward connection reset
+```
 
-### Paramètres Modifiables
+## 🔍 Attack Analysis
 
-**Dans `serveur.py` :**
+### Vulnerability Details
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | ElGamal digital signature |
+| **Method** | Byte-level corruption |
+| **Detection** | Signature verification failure |
+| **Impact** | Denial of service (file rejection) |
+
+### Attack Signature
+
+The proxy corrupts specific bytes in the ElGamal signature:
+
 ```python
-# Configuration réseau
-HOST = 'localhost'      # Adresse d'écoute
-PORT = 8888            # Port d'écoute
-
-# Configuration cryptographique
-KEY_SIZE = 2048        # Taille des clés RSA
+# Example corruption pattern
+original_bytes = [0xfa, 0xc5, 0x2d, 0x5b, 0x31]
+corrupted_bytes = [0x50, 0x6f, 0x87, 0xf1, 0x9b]
 ```
 
-**Dans `client.py` :**
+### Security Implications
+
+1. **Integrity Compromise**: Data authenticity cannot be verified
+2. **Availability Impact**: Legitimate files are rejected
+3. **Detection Capability**: System correctly identifies tampering
+4. **Cryptographic Weakness**: ElGamal implementation vulnerable to corruption
+
+## 📊 Results
+
+### Successful Attack Output
+
+#### MITM Proxy Console
+```
+[MITM] Message → Serveur (1608 octets)
+[MITM] → Détection des métadonnées (avec signature). Corruption...
+[ATTACK] Octet 30 : 0xfa → 0x50
+[ATTACK] Octet 31 : 0xc5 → 0x6f
+[ATTACK] Octet 32 : 0x2d → 0x87
+[ATTACK] Octet 33 : 0x5b → 0xf1
+[ATTACK] Octet 34 : 0x31 → 0x9b
+```
+
+#### Receiver Console
+```
+🔗 Connection established with 192.168.159.128:52698
+🔑 Key exchange completed. Waiting for file...
+❌ Error receiving file: Decryption failed
+🌐 Waiting for a connection...
+```
+
+#### Sender Console
+```
+🔑 Loading keys from keys_sender/...
+🌐 Connecting to 192.168.159.128:9998...
+🔄 Exchanging public keys...
+📤 Sending file: test.txt
+❌ Error: Connection reset by peer
+```
+
+## 🛡️ Security Recommendations
+
+### For Production Systems
+
+1. **Transport Layer Security**
+   ```
+   Implement TLS/SSL for end-to-end encryption
+   Use certificate pinning for authentication
+   ```
+
+2. **Modern Cryptographic Algorithms**
+   ```
+   Replace ElGamal with ECDSA or Ed25519
+   Use authenticated encryption (AES-GCM)
+   Implement perfect forward secrecy
+   ```
+
+3. **Additional Security Measures**
+   ```
+   Multi-factor authentication
+   Message sequence numbers
+   Timestamp validation
+   Certificate revocation checking
+   ```
+
+4. **Network Security**
+   ```
+   VPN or secure tunneling
+   Network segmentation
+   Intrusion detection systems
+   Traffic analysis prevention
+   ```
+
+### Code Improvements
+
 ```python
-# Configuration serveur cible
-SERVER_HOST = 'localhost'
-SERVER_PORT = 8888
-
-# Messages de test prédéfinis
-messages_test = [
-    "Votre message personnalisé",
-    "Autre message de test"
-]
+# Example: Enhanced signature verification
+def verify_signature_enhanced(data, signature, public_key, timestamp):
+    # Verify timestamp freshness
+    if not is_timestamp_valid(timestamp):
+        return False
+    
+    # Use modern signature algorithm
+    try:
+        public_key.verify(signature, data, padding.PSS(...))
+        return True
+    except InvalidSignature:
+        return False
 ```
 
-### Utilisation sur Réseau Local
+## 🤝 Contributing
 
-Pour utiliser le système sur un réseau local :
+We welcome contributions to improve this educational project:
 
-1. **Serveur** : Modifiez `HOST = '0.0.0.0'` dans `serveur.py`
-2. **Client** : Modifiez `SERVER_HOST = 'IP_DU_SERVEUR'` dans `client.py`
-3. **Firewall** : Assurez-vous que le port 8888 est ouvert
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/improvement`)
+3. **Commit** changes (`git commit -am 'Add improvement'`)
+4. **Push** to branch (`git push origin feature/improvement`)
+5. **Create** a Pull Request
 
----
+### Areas for Contribution
 
-## 🧪 Tests et Démonstration
+- Additional attack vectors
+- Modern cryptographic implementations
+- Better error handling
+- Performance optimizations
+- Documentation improvements
 
-### Test de Base
+## 📚 Educational Value
 
-```bash
-# Terminal 1
-python serveur.py
+This project demonstrates:
 
-# Terminal 2
-python client.py
-# Suivez l'interface pour envoyer un message
-```
+- **Cryptographic Protocol Design**: Understanding hybrid encryption
+- **Vulnerability Research**: Identifying attack vectors
+- **Security Analysis**: Evaluating cryptographic implementations
+- **Network Security**: MITM attack techniques
+- **Defensive Programming**: Proper signature verification
 
-### Test Automatisé
+## ⚠️ Disclaimer
 
-```bash
-# Modifiez client.py pour activer test_rapide()
-python client.py
-```
+**FOR EDUCATIONAL PURPOSES ONLY**
 
-### Vérification des Composants
-
-**Test de génération de clés :**
-```python
-python -c "
-from cryptography.hazmat.primitives.asymmetric import rsa
-cle = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-print(f'✅ Clé générée: {cle.key_size} bits')
-"
-```
-
-**Test de signature :**
-```python
-# Testez la signature dans un script séparé
-import hashlib
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import hashes
-
-# Test complet de signature/vérification
-message = "Test de signature"
-cle_privee = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-
-# ... (voir le code source pour l'implémentation complète)
-```
-
----
-
-## 📚 Concepts Pédagogiques
-
-Ce projet illustre les concepts suivants :
-
-### 🔐 Cryptographie Asymétrique (RSA)
-
-- **Principe** : Une paire de clés (publique/privée) par utilisateur
-- **Usage** : Chiffrement avec clé publique, déchiffrement avec clé privée
-- **Avantage** : Pas besoin d'échange préalable de secret
-
-### ✍️ Signature Numérique
-
-- **Principe** : Signature avec clé privée, vérification avec clé publique
-- **Usage** : Garantir l'authenticité et la non-répudiation
-- **Processus** : Hash du message → Signature du hash → Vérification
-
-### 🛡️ Modèle de Sécurité PGP
-
-- **Confidentialité** : Seul le destinataire peut lire
-- **Authenticité** : Vérification de l'expéditeur
-- **Intégrité** : Détection des modifications
-- **Non-répudiation** : Preuve de l'origine
-
-### 🌐 Communication Réseau Sécurisée
-
-- **Transport** : Socket TCP pour la fiabilité
-- **Sérialisation** : Empaquetage des données complexes
-- **Gestion d'erreurs** : Robustesse des communications
+This project is designed for learning and research purposes. Do not use this code in production environments or for malicious activities. The demonstrated vulnerability is intentional and serves to illustrate important security concepts.
