@@ -202,9 +202,67 @@ python3 sender.py test.txt --host 192.168.159.128 --port 9998 --key-dir keys_sen
 | | `--host` | Target host | `localhost` |
 | | `--port` | Target port | `9999` |
 | | `--key-dir` | Keys directory | `keys_sender` |
+| | `--new-keys` | Force new key generation | `False` |
 | `receiver.py` | `--port` | Listen port | `9999` |
 | | `--key-dir` | Keys directory | `keys_receiver` |
+| | `--new-keys` | Force new key generation | `False` |
 | `mitm_proxy.py` | No options | Uses hardcoded values | - |
+
+## 🔑 Key Management
+
+Both scripts support flexible key management to maintain consistent cryptographic identities across multiple sessions:
+
+### 🔧 Receiver Key Management
+
+```bash
+# Use existing keys (or generate if they don't exist)
+python receiver.py --port 9999
+
+# Force generation of new keys
+python receiver.py --port 9999 --new-keys
+
+# Store keys in a custom directory
+python receiver.py --port 9999 --key-dir my_keys
+```
+
+### 📤 Sender Key Management
+
+```bash
+# Use existing keys (or generate if they don't exist)
+python sender.py file.txt --host 192.168.1.100
+
+# Force generation of new keys
+python sender.py file.txt --host 192.168.1.100 --new-keys
+
+# Store keys in a custom directory
+python sender.py file.txt --host 192.168.1.100 --key-dir my_keys
+```
+
+### 🗂️ Key Directory Structure
+
+When keys are generated, the following structure is created:
+
+```
+keys_sender/
+├── 🔐 private_key.pem      # RSA private key
+├── 🔓 public_key.pem       # RSA public key
+├── 🔐 elgamal_private.pem  # ElGamal private key
+└── 🔓 elgamal_public.pem   # ElGamal public key
+
+keys_receiver/
+├── 🔐 private_key.pem      # RSA private key
+└── 🔓 public_key.pem       # RSA public key
+```
+
+### 💡 Key Management Best Practices
+
+| Scenario | Recommended Approach |
+|----------|---------------------|
+| **First Run** | Let scripts auto-generate keys |
+| **Development** | Use `--key-dir dev_keys` for testing |
+| **Production** | Use `--key-dir prod_keys` with proper permissions |
+| **Key Rotation** | Use `--new-keys` flag periodically |
+| **Multiple Users** | Use different `--key-dir` for each user |
 
 ## 🔄 Protocol Flow
 
